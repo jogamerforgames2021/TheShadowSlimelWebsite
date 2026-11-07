@@ -1,7 +1,5 @@
 name: Slime Delivery Service
 
-# manual only. no timers, no auto-detect, nothing runs until you press the button
-# and type the version in yourself
 on:
   workflow_dispatch:
     inputs:
@@ -13,14 +11,11 @@ on:
 permissions:
   contents: write
 
-# one run at a time, a second one just waits in line
 concurrency:
   group: slime-delivery
   cancel-in-progress: false
 
 env:
-  # zip squishes every file on its own, so a giant dictionary only eats ram for nothing.
-  # if you really want 512m back just change it here
   ZIP_DICT: 256m
   ZIP_WORDS: "273"
 
@@ -84,7 +79,6 @@ jobs:
           if not data.get("ok") or not dl:
               sys.exit(f"endpoint answered but there's no download link (ok={data.get('ok')})")
 
-          # hide everything that could leak before it goes anywhere
           print("::add-mask::" + str(dl))
           if data.get("key"):
               print("::add-mask::" + str(data["key"]))
@@ -166,7 +160,6 @@ jobs:
           vanilla = os.path.join(folder, "global-metadata.dat.vanilla")
           patched = os.path.join(folder, "global-metadata.dat.patched")
 
-          # the original becomes .vanilla, we patch from that
           os.replace(live, vanilla)
 
           found = [
@@ -186,7 +179,6 @@ jobs:
           StringLiteralPatcher(vanilla, patch_file).update().patch(patched)
           os.remove(patch_file)
 
-          # compare every string byte by byte, only the login one may be different
           def literals(path):
               with open(path, "rb") as f:
                   blob = f.read()
@@ -209,7 +201,6 @@ jobs:
               sys.exit("the patched string isn't what the secret says")
           print("patch checks out, all", len(a), "strings are fine")
 
-          # global-metadata.dat itself is the patched one
           shutil.copy2(patched, live)
           if not filecmp.cmp(patched, live, shallow=False):
               sys.exit("copy of the patched file doesn't match")
@@ -230,7 +221,6 @@ jobs:
 
           ver, cut, game = os.environ["VER"], os.environ["CUTOFF"], os.environ["GAME_DIR"]
 
-          # latin-1 keeps every byte of the template exactly as it was
           with open("TogglePatch.bat", "rb") as f:
               text = f.read().decode("latin-1")
 
@@ -279,7 +269,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # if this tag already exists (rerun or redo) start fresh
           if gh release view "$VER" > /dev/null 2>&1; then
             gh release delete "$VER" --yes --cleanup-tag
           fi
